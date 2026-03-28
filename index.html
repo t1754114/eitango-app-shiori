@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>えいたんごアプリ Basic版 例文つき 音声ファイル版</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #f5f7fb;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .card {
+      background: white;
+      width: 92%;
+      max-width: 620px;
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .title {
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 16px;
+    }
+    .subtitle {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+    .menu, .buttons, .choices {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .category {
+      display: inline-block;
+      font-size: 14px;
+      background: #e8eefc;
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+    .word {
+      font-size: 40px;
+      font-weight: bold;
+      margin: 16px 0 10px;
+      word-break: break-word;
+    }
+    .meaning {
+      font-size: 26px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    .example {
+      font-size: 24px;
+      color: #222;
+      margin: 16px 0 8px;
+      word-break: break-word;
+    }
+    .example-ja {
+      font-size: 18px;
+      color: #555;
+      margin-bottom: 16px;
+    }
+    .counter, .question-count {
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #666;
+    }
+    .category-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+      max-height: 52vh;
+      overflow-y: auto;
+    }
+    button {
+      font-size: 18px;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .primary { background: #4f8ef7; color: white; }
+    .success { background: #34c759; color: white; }
+    .secondary { background: #999; color: white; }
+    .example-btn { background: #ff9500; color: white; }
+    .next-btn { background: #34c759; color: white; }
+    .choice-btn { background: #e8eefc; color: #000; }
+    .category-btn { background: #eef3ff; color: #111; text-align: left; }
+    .correct { background: #34c759 !important; color: white !important; }
+    .wrong { background: #ff3b30 !important; color: white !important; }
+    .result {
+      font-size: 30px;
+      margin: 20px 0 24px;
+      font-weight: bold;
+    }
+    .small {
+      font-size: 14px;
+      color: #666;
+    }
+    .hidden { display: none; }
+    .quiz-audio-btn {
+      margin-bottom: 12px;
+    }
+    .answer-block {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="homeScreen">
+      <div class="title">えいたんごアプリ</div>
+      <div class="subtitle">カテゴリをえらんで、カードかクイズをはじめます</div>
+      <div class="small" id="totalInfo"></div>
+      <div style="height:12px;"></div>
+      <div id="homeCategories" class="category-list"></div>
+      <div class="buttons">
+        <button type="button" class="primary" onclick="startSelectedCategoryCard()">ことばをおぼえる</button>
+        <button type="button" class="success" onclick="startSelectedCategoryQuiz()">クイズをする</button>
+      </div>
+    </div>
+
+    <div id="cardScreen" class="hidden">
+      <div class="title">えいたんごカード</div>
+      <div id="cardCategory" class="category"></div>
+      <div id="cardWord" class="word"></div>
+
+      <div id="cardAnswerArea" class="hidden answer-block">
+        <div id="cardMeaning" class="meaning"></div>
+        <div class="buttons" style="margin-bottom:14px;">
+          <button type="button" class="primary" onclick="speakCurrentWord()">🔊 単語</button>
+        </div>
+        <div id="cardExample" class="example"></div>
+        <div id="cardExampleJa" class="example-ja"></div>
+        <div class="buttons" style="margin-top:10px;">
+          <button type="button" class="example-btn" onclick="speakCurrentExample()">🔊 例文</button>
+        </div>
+      </div>
+
+      <div id="cardInitialButtons" class="buttons">
+        <button type="button" class="primary" onclick="speakCurrentWord()">🔊 単語</button>
+        <button type="button" class="success" onclick="showCardAnswer()">こたえを見る</button>
+        <button type="button" class="secondary" onclick="goHome()">もどる</button>
+      </div>
+
+      <div id="cardAfterButtons" class="buttons hidden" style="margin-top:12px;">
+        <button type="button" class="next-btn" onclick="nextCard()">つぎへ</button>
+        <button type="button" class="secondary" onclick="goHome()">もどる</button>
+      </div>
+
+      <div id="cardCounter" class="counter"></div>
+    </div>
+
+    <div id="quizScreen" class="hidden">
+      <div id="quizArea">
+        <div class="title">えいたんごクイズ</div>
+        <div id="quizCategory" class="category"></div>
+        <div id="quizCount" class="question-count"></div>
+        <div id="quizWord" class="word"></div>
+        <button type="button" class="primary quiz-audio-btn" onclick="speakQuizWord()">🔊 はつおんをきく</button>
+        <div id="quizChoices" class="choices"></div>
+        <div class="buttons" style="margin-top:12px;">
+          <button type="button" class="secondary" onclick="goHome()">もどる</button>
+        </div>
+      </div>
+
+      <div id="quizResultArea" class="hidden">
+        <div class="title">けっか</div>
+        <div id="quizScore" class="result"></div>
+        <div class="buttons">
+          <button type="button" class="primary" onclick="restartQuiz()">もういちど</button>
+          <button type="button" class="secondary" onclick="goHome()">トップにもどる</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var categories = [{"id": "basic", "label": "あいさつ・会話の基本", "words": [["hello", "こんにちは", "Hello, Ken.", "こんにちは、ケン。"], ["good morning", "おはよう", "Good morning, everyone.", "みなさん、おはよう。"], ["goodbye", "さようなら", "Goodbye, Ms. Sato.", "さようなら、佐藤先生。"], ["see you", "またね", "See you tomorrow.", "また明日。"], ["thank you", "ありがとう", "Thank you for your help.", "手伝ってくれてありがとう。"], ["you're welcome", "どういたしまして", "You're welcome, Yui.", "どういたしまして、ゆい。"], ["sorry", "ごめんなさい", "Sorry, I am late.", "おくれてごめんなさい。"], ["excuse me", "すみません", "Excuse me, where is the library?", "すみません、図書室はどこですか。"], ["please", "おねがいします", "Please open the window.", "窓を開けてください。"], ["yes", "はい", "Yes, I can.", "はい、できます。"], ["no", "いいえ", "No, I do not.", "いいえ、しません。"], ["my", "わたしの", "This is my bag.", "これは私のかばんです。"], ["your", "あなたの", "Is this your book?", "これはあなたの本ですか。"], ["name", "名前", "My name is Taro.", "私の名前はたろうです。"], ["friend", "ともだち", "He is my friend.", "彼は私の友だちです。"], ["teacher", "先生", "My teacher is kind.", "私の先生は親切です。"], ["I", "わたしは", "I like music.", "私は音楽が好きです。"], ["you", "あなたは", "You are my friend.", "あなたは私の友だちです。"], ["this", "これ", "This is a pen.", "これはペンです。"], ["that", "あれ", "That is our school.", "あれは私たちの学校です。"], ["what", "なに", "What is this?", "これは何ですか。"], ["where", "どこ", "Where is my notebook?", "私のノートはどこですか。"], ["how", "どう", "How are you?", "元気ですか。"], ["like", "好き", "I like soccer.", "私はサッカーが好きです。"], ["can", "できる", "I can swim.", "私は泳げます。"], ["have", "もっている", "I have a red pencil.", "私は赤いえんぴつを持っています。"], ["do", "する", "I do my homework.", "私は宿題をします。"], ["good", "よい", "This book is good.", "この本はよいです。"], ["today", "きょう", "Today is sunny.", "今日は晴れです。"], ["question", "しつもん", "I have a question.", "私は質問があります。"]]}, {"id": "school", "label": "学校・教室", "words": [["school", "学校", "My school is big.", "私の学校は大きいです。"], ["classroom", "教室", "This is our classroom.", "ここは私たちの教室です。"], ["library", "図書室", "I read books in the library.", "私は図書室で本を読みます。"], ["gym", "体育館", "We play basketball in the gym.", "私たちは体育館でバスケットボールをします。"], ["playground", "校庭", "The children run in the playground.", "子どもたちは校庭で走ります。"], ["desk", "机", "My pencil is on the desk.", "私のえんぴつは机の上にあります。"], ["chair", "いす", "Please sit on the chair.", "いすにすわってください。"], ["bag", "かばん", "My bag is blue.", "私のかばんは青いです。"], ["book", "本", "I have a new book.", "私は新しい本を持っています。"], ["notebook", "ノート", "This notebook is mine.", "このノートは私のです。"], ["pen", "ペン", "I write with a pen.", "私はペンで書きます。"], ["pencil", "えんぴつ", "I have two pencils.", "私はえんぴつを2本持っています。"], ["eraser", "消しゴム", "I need an eraser.", "私は消しゴムが必要です。"], ["ruler", "定規", "This ruler is long.", "この定規は長いです。"], ["scissors", "はさみ", "Use the scissors carefully.", "はさみを気をつけて使ってください。"], ["computer", "コンピュータ", "We use a computer in class.", "私たちは授業でコンピュータを使います。"], ["tablet", "タブレット", "My school has tablets.", "私の学校にはタブレットがあります。"], ["clock", "時計", "Look at the clock.", "時計を見てください。"], ["homework", "宿題", "I do my homework after dinner.", "私は夕食のあとに宿題をします。"], ["test", "テスト", "We have a test today.", "今日はテストがあります。"], ["quiz", "クイズ", "This quiz is easy.", "このクイズはやさしいです。"], ["lesson", "授業", "English lesson starts now.", "英語の授業が今始まります。"], ["blackboard", "黒板", "The teacher writes on the blackboard.", "先生は黒板に書きます。"], ["textbook", "教科書", "Open your textbook, please.", "教科書を開いてください。"], ["seat", "席", "This is my seat.", "ここが私の席です。"], ["English", "英語", "I study English at school.", "私は学校で英語を勉強します。"], ["Japanese", "国語", "Japanese is my favorite subject.", "国語は私の好きな教科です。"], ["math", "算数", "Math is fun.", "算数は楽しいです。"], ["science", "理科", "We learn science on Friday.", "私たちは金曜日に理科を勉強します。"], ["music", "音楽", "I like music class.", "私は音楽の授業が好きです。"]]}, {"id": "time_calendar", "label": "数・時間・カレンダー", "words": [["one", "1", "I have one dog.", "私は犬を1匹飼っています。"], ["two", "2", "I have two books.", "私は本を2冊持っています。"], ["three", "3", "Three apples are on the table.", "3個のりんごがテーブルの上にあります。"], ["four", "4", "I see four birds.", "私は4羽の鳥を見ます。"], ["five", "5", "We have five classes today.", "今日は授業が5時間あります。"], ["six", "6", "I get up at six.", "私は6時に起きます。"], ["seven", "7", "Seven students are here.", "7人の児童がここにいます。"], ["eight", "8", "I go to school at eight.", "私は8時に学校へ行きます。"], ["nine", "9", "My class has nine boys.", "私のクラスには男子が9人います。"], ["ten", "10", "I have ten crayons.", "私はクレヨンを10本持っています。"], ["eleven", "11", "Eleven cats are in the picture.", "絵の中にねこが11匹います。"], ["twelve", "12", "There are twelve months in a year.", "1年は12か月あります。"], ["thirteen", "13", "My cousin is thirteen.", "私のいとこは13歳です。"], ["fourteen", "14", "We need fourteen chairs.", "私たちはいすを14脚必要とします。"], ["fifteen", "15", "I have fifteen stickers.", "私はシールを15枚持っています。"], ["sixteen", "16", "Sixteen children are in the room.", "部屋に16人の子どもがいます。"], ["seventeen", "17", "Seventeen birds fly in the sky.", "17羽の鳥が空を飛んでいます。"], ["eighteen", "18", "I can count to eighteen.", "私は18まで数えられます。"], ["nineteen", "19", "Nineteen pencils are in the box.", "箱の中にえんぴつが19本あります。"], ["twenty", "20", "There are twenty desks in our classroom.", "私たちの教室には机が20あります。"], ["Monday", "月曜日", "We have English on Monday.", "私たちは月曜日に英語があります。"], ["Tuesday", "火曜日", "I play soccer on Tuesday.", "私は火曜日にサッカーをします。"], ["Wednesday", "水曜日", "Wednesday is busy for me.", "水曜日は私にとっていそがしいです。"], ["Thursday", "木曜日", "We read books on Thursday.", "私たちは木曜日に本を読みます。"], ["Friday", "金曜日", "Friday is my favorite day.", "金曜日は私の好きな日です。"], ["Saturday", "土曜日", "I go to the park on Saturday.", "私は土曜日に公園へ行きます。"], ["Sunday", "日曜日", "My family is together on Sunday.", "私の家族は日曜日にそろいます。"], ["morning", "朝", "I eat breakfast in the morning.", "私は朝に朝ごはんを食べます。"], ["birthday", "たんじょう日", "My birthday is in May.", "私のたんじょう日は5月です。"], ["time", "時間", "What time is it?", "今何時ですか。"]]}, {"id": "food_shopping", "label": "食べ物・買い物", "words": [["apple", "りんご", "I eat an apple.", "私はりんごを食べます。"], ["banana", "バナナ", "This banana is yellow.", "このバナナは黄色いです。"], ["orange", "オレンジ", "I like orange juice.", "私はオレンジジュースが好きです。"], ["grape", "ぶどう", "These grapes are sweet.", "このぶどうはあまいです。"], ["fruit", "くだもの", "I like fruit.", "私はくだものが好きです。"], ["vegetable", "やさい", "Vegetables are good for us.", "やさいは私たちによいです。"], ["tomato", "トマト", "I have a red tomato.", "私は赤いトマトを持っています。"], ["potato", "じゃがいも", "Potatoes are in the bag.", "じゃがいもはかばんの中にあります。"], ["carrot", "にんじん", "Rabbits like carrots.", "うさぎはにんじんが好きです。"], ["rice", "ごはん", "I eat rice for dinner.", "私は夕ごはんにごはんを食べます。"], ["bread", "パン", "I like bread for breakfast.", "私は朝ごはんにパンが好きです。"], ["pizza", "ピザ", "We make pizza at home.", "私たちは家でピザを作ります。"], ["salad", "サラダ", "This salad is fresh.", "このサラダは新鮮です。"], ["egg", "たまご", "I eat an egg every morning.", "私は毎朝たまごを食べます。"], ["cheese", "チーズ", "There is cheese on the pizza.", "ピザの上にチーズがあります。"], ["meat", "肉", "I eat meat at lunch.", "私は昼ごはんに肉を食べます。"], ["milk", "ぎゅうにゅう", "I drink milk every day.", "私は毎日ぎゅうにゅうを飲みます。"], ["water", "水", "Please drink water.", "水を飲んでください。"], ["juice", "ジュース", "This juice is cold.", "このジュースは冷たいです。"], ["ice cream", "アイスクリーム", "I like chocolate ice cream.", "私はチョコレートアイスが好きです。"], ["cake", "ケーキ", "We eat cake at the party.", "私たちはパーティーでケーキを食べます。"], ["breakfast", "朝ごはん", "Breakfast is ready.", "朝ごはんの準備ができました。"], ["lunch", "昼ごはん", "I eat lunch at school.", "私は学校で昼ごはんを食べます。"], ["dinner", "夕ごはん", "We have dinner at seven.", "私たちは7時に夕ごはんを食べます。"], ["plate", "皿", "The apple is on the plate.", "りんごは皿の上にあります。"], ["cup", "カップ", "This cup is small.", "このカップは小さいです。"], ["fork", "フォーク", "I use a fork for salad.", "私はサラダにフォークを使います。"], ["spoon", "スプーン", "This spoon is for soup.", "このスプーンはスープ用です。"], ["shop", "店", "I go to the shop with my mother.", "私は母と店へ行きます。"], ["money", "お金", "I have some money.", "私はお金を持っています。"]]}, {"id": "family_people", "label": "家族・人・まち", "words": [["family", "家族", "My family is big.", "私の家族は大きいです。"], ["father", "父", "My father is kind.", "私の父は親切です。"], ["mother", "母", "My mother cooks dinner.", "私の母は夕ごはんを作ります。"], ["brother", "兄弟", "My brother plays baseball.", "私の兄弟は野球をします。"], ["sister", "姉妹", "My sister likes music.", "私の姉妹は音楽が好きです。"], ["grandfather", "祖父", "My grandfather tells stories.", "私の祖父は話をしてくれます。"], ["grandmother", "祖母", "My grandmother makes cake.", "私の祖母はケーキを作ります。"], ["people", "人々", "Many people are in the park.", "たくさんの人が公園にいます。"], ["man", "男の人", "That man is my teacher.", "あの男の人は私の先生です。"], ["woman", "女の人", "The woman is my aunt.", "その女の人は私のおばです。"], ["boy", "男の子", "The boy runs fast.", "その男の子は速く走ります。"], ["girl", "女の子", "The girl has a red bag.", "その女の子は赤いかばんを持っています。"], ["doctor", "医者", "My father is a doctor.", "私の父は医者です。"], ["nurse", "看護師", "The nurse is kind.", "その看護師は親切です。"], ["farmer", "農家", "The farmer grows vegetables.", "その農家はやさいを育てます。"], ["police officer", "警察官", "The police officer helps people.", "その警察官は人々を助けます。"], ["firefighter", "消防士", "The firefighter is strong.", "その消防士は強いです。"], ["town", "町", "My town is quiet.", "私の町は静かです。"], ["city", "市", "This city is big.", "この市は大きいです。"], ["country", "国", "Japan is my country.", "日本は私の国です。"], ["Japan", "日本", "I live in Japan.", "私は日本に住んでいます。"], ["world", "世界", "We learn about the world.", "私たちは世界について学びます。"], ["home", "家", "I go home after school.", "私は放課後に家へ帰ります。"], ["room", "部屋", "My room is clean.", "私の部屋はきれいです。"], ["park", "公園", "We play in the park.", "私たちは公園で遊びます。"], ["station", "駅", "The station is near my house.", "駅は私の家の近くです。"], ["hospital", "病院", "The hospital is in my town.", "病院は私の町にあります。"], ["party", "パーティー", "We have a party today.", "今日はパーティーがあります。"], ["present", "プレゼント", "This present is for you.", "このプレゼントはあなたのためです。"], ["kind", "親切な", "My teacher is kind.", "私の先生は親切です。"]]}, {"id": "nature_animals", "label": "自然・動物・天気", "words": [["sun", "太陽", "The sun is bright.", "太陽は明るいです。"], ["moon", "月", "The moon is beautiful tonight.", "今夜の月はきれいです。"], ["star", "星", "I can see a star.", "私は星が見えます。"], ["sky", "空", "The sky is blue.", "空は青いです。"], ["rain", "雨", "I hear the rain.", "私は雨の音を聞きます。"], ["snow", "雪", "We play in the snow.", "私たちは雪で遊びます。"], ["wind", "風", "The wind is strong today.", "今日は風が強いです。"], ["weather", "天気", "The weather is nice today.", "今日は天気がよいです。"], ["sea", "海", "I go to the sea in summer.", "私は夏に海へ行きます。"], ["river", "川", "There are fish in the river.", "川に魚がいます。"], ["mountain", "山", "That mountain is high.", "あの山は高いです。"], ["tree", "木", "A bird is in the tree.", "木に鳥がいます。"], ["flower", "花", "This flower is red.", "この花は赤いです。"], ["hot", "暑い", "It is hot in August.", "8月は暑いです。"], ["cold", "寒い", "It is cold in winter.", "冬は寒いです。"], ["sunny", "晴れの", "It is sunny today.", "今日は晴れです。"], ["cloudy", "くもりの", "It is cloudy this morning.", "今朝はくもりです。"], ["rainy", "雨の", "It is rainy today.", "今日は雨です。"], ["dog", "犬", "The dog is cute.", "その犬はかわいいです。"], ["cat", "ねこ", "The cat is on the chair.", "そのねこはいすの上にいます。"], ["bird", "鳥", "I see a bird in the sky.", "私は空に鳥を見ます。"], ["fish", "魚", "The fish swims fast.", "その魚は速く泳ぎます。"], ["rabbit", "うさぎ", "The rabbit likes carrots.", "そのうさぎはにんじんが好きです。"], ["bear", "くま", "The bear is big.", "そのくまは大きいです。"], ["horse", "馬", "The horse runs fast.", "その馬は速く走ります。"], ["cow", "牛", "The cow is on the farm.", "その牛は農場にいます。"], ["monkey", "さる", "The monkey can climb trees.", "そのさるは木に登れます。"], ["elephant", "ぞう", "The elephant is very big.", "そのぞうはとても大きいです。"], ["zoo", "動物園", "I go to the zoo on Sunday.", "私は日曜日に動物園へ行きます。"], ["pet", "ペット", "My dog is my pet.", "私の犬は私のペットです。"]]}, {"id": "actions_hobbies", "label": "動作・趣味・ようす", "words": [["play", "遊ぶ", "I play soccer.", "私はサッカーをします。"], ["run", "走る", "I run in the park.", "私は公園で走ります。"], ["walk", "歩く", "I walk to school.", "私は学校へ歩いて行きます。"], ["jump", "とぶ", "I jump high.", "私は高くとびます。"], ["swim", "泳ぐ", "I swim in the pool.", "私はプールで泳ぎます。"], ["dance", "おどる", "I dance with my friends.", "私は友だちとおどります。"], ["sing", "歌う", "I sing a song.", "私は歌を歌います。"], ["draw", "絵をかく", "I draw a picture.", "私は絵をかきます。"], ["read", "読む", "I read a book.", "私は本を読みます。"], ["write", "書く", "I write a letter.", "私は手紙を書きます。"], ["watch", "見る", "I watch TV.", "私はテレビを見ます。"], ["listen", "聞く", "I listen to music.", "私は音楽を聞きます。"], ["talk", "話す", "I talk with my friend.", "私は友だちと話します。"], ["give", "あげる", "I give you a pen.", "私はあなたにペンをあげます。"], ["take", "取る", "I take a book.", "私は本を取ります。"], ["come", "来る", "I come to school.", "私は学校に来ます。"], ["go", "行く", "I go home.", "私は家に帰ります。"], ["help", "手伝う", "I help my mother.", "私は母を手伝います。"], ["open", "開ける", "I open the door.", "私はドアを開けます。"], ["close", "閉める", "I close the window.", "私は窓を閉めます。"], ["study", "勉強する", "I study English.", "私は英語を勉強します。"], ["make", "作る", "I make a cake.", "私はケーキを作ります。"], ["ride", "乗る", "I ride a bike.", "私は自転車に乗ります。"], ["eat", "食べる", "I eat an apple.", "私はりんごを食べます。"], ["drink", "飲む", "I drink milk.", "私は牛乳を飲みます。"], ["buy", "買う", "I buy a pen.", "私はペンを買います。"], ["beautiful", "美しい", "This flower is beautiful.", "この花は美しいです。"], ["cute", "かわいい", "This dog is cute.", "この犬はかわいいです。"], ["big", "大きい", "This bag is big.", "このかばんは大きいです。"], ["small", "小さい", "This cat is small.", "このねこは小さいです。"]]}];
+    var words = [{"id": "basic-001", "word": "hello", "meaning": "こんにちは", "quizMeaning": "こんにちは", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "Hello, Ken.", "exampleJa": "こんにちは、ケン。"}, {"id": "basic-002", "word": "good morning", "meaning": "おはよう", "quizMeaning": "おはよう", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "Good morning, everyone.", "exampleJa": "みなさん、おはよう。"}, {"id": "basic-003", "word": "goodbye", "meaning": "さようなら", "quizMeaning": "さようなら", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "Goodbye, Ms. Sato.", "exampleJa": "さようなら、佐藤先生。"}, {"id": "basic-004", "word": "see you", "meaning": "またね", "quizMeaning": "またね", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "See you tomorrow.", "exampleJa": "また明日。"}, {"id": "basic-005", "word": "thank you", "meaning": "ありがとう", "quizMeaning": "ありがとう", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "Thank you for your help.", "exampleJa": "手伝ってくれてありがとう。"}, {"id": "basic-006", "word": "you're welcome", "meaning": "どういたしまして", "quizMeaning": "どういたしまして", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "You're welcome, Yui.", "exampleJa": "どういたしまして、ゆい。"}, {"id": "basic-007", "word": "sorry", "meaning": "ごめんなさい", "quizMeaning": "ごめんなさい", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "Sorry, I am late.", "exampleJa": "おくれてごめんなさい。"}, {"id": "basic-008", "word": "excuse me", "meaning": "すみません", "quizMeaning": "すみません", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "Excuse me, where is the library?", "exampleJa": "すみません、図書室はどこですか。"}, {"id": "basic-009", "word": "please", "meaning": "おねがいします", "quizMeaning": "おねがいします", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "Please open the window.", "exampleJa": "窓を開けてください。"}, {"id": "basic-010", "word": "yes", "meaning": "はい", "quizMeaning": "はい", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "Yes, I can.", "exampleJa": "はい、できます。"}, {"id": "basic-011", "word": "no", "meaning": "いいえ", "quizMeaning": "いいえ", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "No, I do not.", "exampleJa": "いいえ、しません。"}, {"id": "basic-012", "word": "my", "meaning": "わたしの", "quizMeaning": "わたしの", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "This is my bag.", "exampleJa": "これは私のかばんです。"}, {"id": "basic-013", "word": "your", "meaning": "あなたの", "quizMeaning": "あなたの", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "Is this your book?", "exampleJa": "これはあなたの本ですか。"}, {"id": "basic-014", "word": "name", "meaning": "名前", "quizMeaning": "名前", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "My name is Taro.", "exampleJa": "私の名前はたろうです。"}, {"id": "basic-015", "word": "friend", "meaning": "ともだち", "quizMeaning": "ともだち", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "He is my friend.", "exampleJa": "彼は私の友だちです。"}, {"id": "basic-016", "word": "teacher", "meaning": "先生", "quizMeaning": "先生", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "My teacher is kind.", "exampleJa": "私の先生は親切です。"}, {"id": "basic-017", "word": "I", "meaning": "わたしは", "quizMeaning": "わたしは", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "I like music.", "exampleJa": "私は音楽が好きです。"}, {"id": "basic-018", "word": "you", "meaning": "あなたは", "quizMeaning": "あなたは", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "You are my friend.", "exampleJa": "あなたは私の友だちです。"}, {"id": "basic-019", "word": "this", "meaning": "これ", "quizMeaning": "これ", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "This is a pen.", "exampleJa": "これはペンです。"}, {"id": "basic-020", "word": "that", "meaning": "あれ", "quizMeaning": "あれ", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "That is our school.", "exampleJa": "あれは私たちの学校です。"}, {"id": "basic-021", "word": "what", "meaning": "なに", "quizMeaning": "なに", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "What is this?", "exampleJa": "これは何ですか。"}, {"id": "basic-022", "word": "where", "meaning": "どこ", "quizMeaning": "どこ", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "Where is my notebook?", "exampleJa": "私のノートはどこですか。"}, {"id": "basic-023", "word": "how", "meaning": "どう", "quizMeaning": "どう", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "How are you?", "exampleJa": "元気ですか。"}, {"id": "basic-024", "word": "like", "meaning": "好き", "quizMeaning": "好き", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "I like soccer.", "exampleJa": "私はサッカーが好きです。"}, {"id": "basic-025", "word": "can", "meaning": "できる", "quizMeaning": "できる", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "I can swim.", "exampleJa": "私は泳げます。"}, {"id": "basic-026", "word": "have", "meaning": "もっている", "quizMeaning": "もっている", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "I have a red pencil.", "exampleJa": "私は赤いえんぴつを持っています。"}, {"id": "basic-027", "word": "do", "meaning": "する", "quizMeaning": "する", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "I do my homework.", "exampleJa": "私は宿題をします。"}, {"id": "basic-028", "word": "good", "meaning": "よい", "quizMeaning": "よい", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "This book is good.", "exampleJa": "この本はよいです。"}, {"id": "basic-029", "word": "today", "meaning": "きょう", "quizMeaning": "きょう", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "Today is sunny.", "exampleJa": "今日は晴れです。"}, {"id": "basic-030", "word": "question", "meaning": "しつもん", "quizMeaning": "しつもん", "category": "basic", "categoryLabel": "あいさつ・会話の基本", "example": "I have a question.", "exampleJa": "私は質問があります。"}, {"id": "school-001", "word": "school", "meaning": "学校", "quizMeaning": "学校", "category": "school", "categoryLabel": "学校・教室", "example": "My school is big.", "exampleJa": "私の学校は大きいです。"}, {"id": "school-002", "word": "classroom", "meaning": "教室", "quizMeaning": "教室", "category": "school", "categoryLabel": "学校・教室", "example": "This is our classroom.", "exampleJa": "ここは私たちの教室です。"}, {"id": "school-003", "word": "library", "meaning": "図書室", "quizMeaning": "図書室", "category": "school", "categoryLabel": "学校・教室", "example": "I read books in the library.", "exampleJa": "私は図書室で本を読みます。"}, {"id": "school-004", "word": "gym", "meaning": "体育館", "quizMeaning": "体育館", "category": "school", "categoryLabel": "学校・教室", "example": "We play basketball in the gym.", "exampleJa": "私たちは体育館でバスケットボールをします。"}, {"id": "school-005", "word": "playground", "meaning": "校庭", "quizMeaning": "校庭", "category": "school", "categoryLabel": "学校・教室", "example": "The children run in the playground.", "exampleJa": "子どもたちは校庭で走ります。"}, {"id": "school-006", "word": "desk", "meaning": "机", "quizMeaning": "机", "category": "school", "categoryLabel": "学校・教室", "example": "My pencil is on the desk.", "exampleJa": "私のえんぴつは机の上にあります。"}, {"id": "school-007", "word": "chair", "meaning": "いす", "quizMeaning": "いす", "category": "school", "categoryLabel": "学校・教室", "example": "Please sit on the chair.", "exampleJa": "いすにすわってください。"}, {"id": "school-008", "word": "bag", "meaning": "かばん", "quizMeaning": "かばん", "category": "school", "categoryLabel": "学校・教室", "example": "My bag is blue.", "exampleJa": "私のかばんは青いです。"}, {"id": "school-009", "word": "book", "meaning": "本", "quizMeaning": "本", "category": "school", "categoryLabel": "学校・教室", "example": "I have a new book.", "exampleJa": "私は新しい本を持っています。"}, {"id": "school-010", "word": "notebook", "meaning": "ノート", "quizMeaning": "ノート", "category": "school", "categoryLabel": "学校・教室", "example": "This notebook is mine.", "exampleJa": "このノートは私のです。"}, {"id": "school-011", "word": "pen", "meaning": "ペン", "quizMeaning": "ペン", "category": "school", "categoryLabel": "学校・教室", "example": "I write with a pen.", "exampleJa": "私はペンで書きます。"}, {"id": "school-012", "word": "pencil", "meaning": "えんぴつ", "quizMeaning": "えんぴつ", "category": "school", "categoryLabel": "学校・教室", "example": "I have two pencils.", "exampleJa": "私はえんぴつを2本持っています。"}, {"id": "school-013", "word": "eraser", "meaning": "消しゴム", "quizMeaning": "消しゴム", "category": "school", "categoryLabel": "学校・教室", "example": "I need an eraser.", "exampleJa": "私は消しゴムが必要です。"}, {"id": "school-014", "word": "ruler", "meaning": "定規", "quizMeaning": "定規", "category": "school", "categoryLabel": "学校・教室", "example": "This ruler is long.", "exampleJa": "この定規は長いです。"}, {"id": "school-015", "word": "scissors", "meaning": "はさみ", "quizMeaning": "はさみ", "category": "school", "categoryLabel": "学校・教室", "example": "Use the scissors carefully.", "exampleJa": "はさみを気をつけて使ってください。"}, {"id": "school-016", "word": "computer", "meaning": "コンピュータ", "quizMeaning": "コンピュータ", "category": "school", "categoryLabel": "学校・教室", "example": "We use a computer in class.", "exampleJa": "私たちは授業でコンピュータを使います。"}, {"id": "school-017", "word": "tablet", "meaning": "タブレット", "quizMeaning": "タブレット", "category": "school", "categoryLabel": "学校・教室", "example": "My school has tablets.", "exampleJa": "私の学校にはタブレットがあります。"}, {"id": "school-018", "word": "clock", "meaning": "時計", "quizMeaning": "時計", "category": "school", "categoryLabel": "学校・教室", "example": "Look at the clock.", "exampleJa": "時計を見てください。"}, {"id": "school-019", "word": "homework", "meaning": "宿題", "quizMeaning": "宿題", "category": "school", "categoryLabel": "学校・教室", "example": "I do my homework after dinner.", "exampleJa": "私は夕食のあとに宿題をします。"}, {"id": "school-020", "word": "test", "meaning": "テスト", "quizMeaning": "テスト", "category": "school", "categoryLabel": "学校・教室", "example": "We have a test today.", "exampleJa": "今日はテストがあります。"}, {"id": "school-021", "word": "quiz", "meaning": "クイズ", "quizMeaning": "クイズ", "category": "school", "categoryLabel": "学校・教室", "example": "This quiz is easy.", "exampleJa": "このクイズはやさしいです。"}, {"id": "school-022", "word": "lesson", "meaning": "授業", "quizMeaning": "授業", "category": "school", "categoryLabel": "学校・教室", "example": "English lesson starts now.", "exampleJa": "英語の授業が今始まります。"}, {"id": "school-023", "word": "blackboard", "meaning": "黒板", "quizMeaning": "黒板", "category": "school", "categoryLabel": "学校・教室", "example": "The teacher writes on the blackboard.", "exampleJa": "先生は黒板に書きます。"}, {"id": "school-024", "word": "textbook", "meaning": "教科書", "quizMeaning": "教科書", "category": "school", "categoryLabel": "学校・教室", "example": "Open your textbook, please.", "exampleJa": "教科書を開いてください。"}, {"id": "school-025", "word": "seat", "meaning": "席", "quizMeaning": "席", "category": "school", "categoryLabel": "学校・教室", "example": "This is my seat.", "exampleJa": "ここが私の席です。"}, {"id": "school-026", "word": "English", "meaning": "英語", "quizMeaning": "英語", "category": "school", "categoryLabel": "学校・教室", "example": "I study English at school.", "exampleJa": "私は学校で英語を勉強します。"}, {"id": "school-027", "word": "Japanese", "meaning": "国語", "quizMeaning": "国語", "category": "school", "categoryLabel": "学校・教室", "example": "Japanese is my favorite subject.", "exampleJa": "国語は私の好きな教科です。"}, {"id": "school-028", "word": "math", "meaning": "算数", "quizMeaning": "算数", "category": "school", "categoryLabel": "学校・教室", "example": "Math is fun.", "exampleJa": "算数は楽しいです。"}, {"id": "school-029", "word": "science", "meaning": "理科", "quizMeaning": "理科", "category": "school", "categoryLabel": "学校・教室", "example": "We learn science on Friday.", "exampleJa": "私たちは金曜日に理科を勉強します。"}, {"id": "school-030", "word": "music", "meaning": "音楽", "quizMeaning": "音楽", "category": "school", "categoryLabel": "学校・教室", "example": "I like music class.", "exampleJa": "私は音楽の授業が好きです。"}, {"id": "time_calendar-001", "word": "one", "meaning": "1", "quizMeaning": "1", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "I have one dog.", "exampleJa": "私は犬を1匹飼っています。"}, {"id": "time_calendar-002", "word": "two", "meaning": "2", "quizMeaning": "2", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "I have two books.", "exampleJa": "私は本を2冊持っています。"}, {"id": "time_calendar-003", "word": "three", "meaning": "3", "quizMeaning": "3", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "Three apples are on the table.", "exampleJa": "3個のりんごがテーブルの上にあります。"}, {"id": "time_calendar-004", "word": "four", "meaning": "4", "quizMeaning": "4", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "I see four birds.", "exampleJa": "私は4羽の鳥を見ます。"}, {"id": "time_calendar-005", "word": "five", "meaning": "5", "quizMeaning": "5", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "We have five classes today.", "exampleJa": "今日は授業が5時間あります。"}, {"id": "time_calendar-006", "word": "six", "meaning": "6", "quizMeaning": "6", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "I get up at six.", "exampleJa": "私は6時に起きます。"}, {"id": "time_calendar-007", "word": "seven", "meaning": "7", "quizMeaning": "7", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "Seven students are here.", "exampleJa": "7人の児童がここにいます。"}, {"id": "time_calendar-008", "word": "eight", "meaning": "8", "quizMeaning": "8", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "I go to school at eight.", "exampleJa": "私は8時に学校へ行きます。"}, {"id": "time_calendar-009", "word": "nine", "meaning": "9", "quizMeaning": "9", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "My class has nine boys.", "exampleJa": "私のクラスには男子が9人います。"}, {"id": "time_calendar-010", "word": "ten", "meaning": "10", "quizMeaning": "10", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "I have ten crayons.", "exampleJa": "私はクレヨンを10本持っています。"}, {"id": "time_calendar-011", "word": "eleven", "meaning": "11", "quizMeaning": "11", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "Eleven cats are in the picture.", "exampleJa": "絵の中にねこが11匹います。"}, {"id": "time_calendar-012", "word": "twelve", "meaning": "12", "quizMeaning": "12", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "There are twelve months in a year.", "exampleJa": "1年は12か月あります。"}, {"id": "time_calendar-013", "word": "thirteen", "meaning": "13", "quizMeaning": "13", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "My cousin is thirteen.", "exampleJa": "私のいとこは13歳です。"}, {"id": "time_calendar-014", "word": "fourteen", "meaning": "14", "quizMeaning": "14", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "We need fourteen chairs.", "exampleJa": "私たちはいすを14脚必要とします。"}, {"id": "time_calendar-015", "word": "fifteen", "meaning": "15", "quizMeaning": "15", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "I have fifteen stickers.", "exampleJa": "私はシールを15枚持っています。"}, {"id": "time_calendar-016", "word": "sixteen", "meaning": "16", "quizMeaning": "16", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "Sixteen children are in the room.", "exampleJa": "部屋に16人の子どもがいます。"}, {"id": "time_calendar-017", "word": "seventeen", "meaning": "17", "quizMeaning": "17", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "Seventeen birds fly in the sky.", "exampleJa": "17羽の鳥が空を飛んでいます。"}, {"id": "time_calendar-018", "word": "eighteen", "meaning": "18", "quizMeaning": "18", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "I can count to eighteen.", "exampleJa": "私は18まで数えられます。"}, {"id": "time_calendar-019", "word": "nineteen", "meaning": "19", "quizMeaning": "19", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "Nineteen pencils are in the box.", "exampleJa": "箱の中にえんぴつが19本あります。"}, {"id": "time_calendar-020", "word": "twenty", "meaning": "20", "quizMeaning": "20", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "There are twenty desks in our classroom.", "exampleJa": "私たちの教室には机が20あります。"}, {"id": "time_calendar-021", "word": "Monday", "meaning": "月曜日", "quizMeaning": "月曜日", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "We have English on Monday.", "exampleJa": "私たちは月曜日に英語があります。"}, {"id": "time_calendar-022", "word": "Tuesday", "meaning": "火曜日", "quizMeaning": "火曜日", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "I play soccer on Tuesday.", "exampleJa": "私は火曜日にサッカーをします。"}, {"id": "time_calendar-023", "word": "Wednesday", "meaning": "水曜日", "quizMeaning": "水曜日", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "Wednesday is busy for me.", "exampleJa": "水曜日は私にとっていそがしいです。"}, {"id": "time_calendar-024", "word": "Thursday", "meaning": "木曜日", "quizMeaning": "木曜日", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "We read books on Thursday.", "exampleJa": "私たちは木曜日に本を読みます。"}, {"id": "time_calendar-025", "word": "Friday", "meaning": "金曜日", "quizMeaning": "金曜日", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "Friday is my favorite day.", "exampleJa": "金曜日は私の好きな日です。"}, {"id": "time_calendar-026", "word": "Saturday", "meaning": "土曜日", "quizMeaning": "土曜日", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "I go to the park on Saturday.", "exampleJa": "私は土曜日に公園へ行きます。"}, {"id": "time_calendar-027", "word": "Sunday", "meaning": "日曜日", "quizMeaning": "日曜日", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "My family is together on Sunday.", "exampleJa": "私の家族は日曜日にそろいます。"}, {"id": "time_calendar-028", "word": "morning", "meaning": "朝", "quizMeaning": "朝", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "I eat breakfast in the morning.", "exampleJa": "私は朝に朝ごはんを食べます。"}, {"id": "time_calendar-029", "word": "birthday", "meaning": "たんじょう日", "quizMeaning": "たんじょう日", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "My birthday is in May.", "exampleJa": "私のたんじょう日は5月です。"}, {"id": "time_calendar-030", "word": "time", "meaning": "時間", "quizMeaning": "時間", "category": "time_calendar", "categoryLabel": "数・時間・カレンダー", "example": "What time is it?", "exampleJa": "今何時ですか。"}, {"id": "food_shopping-001", "word": "apple", "meaning": "りんご", "quizMeaning": "りんご", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I eat an apple.", "exampleJa": "私はりんごを食べます。"}, {"id": "food_shopping-002", "word": "banana", "meaning": "バナナ", "quizMeaning": "バナナ", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "This banana is yellow.", "exampleJa": "このバナナは黄色いです。"}, {"id": "food_shopping-003", "word": "orange", "meaning": "オレンジ", "quizMeaning": "オレンジ", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I like orange juice.", "exampleJa": "私はオレンジジュースが好きです。"}, {"id": "food_shopping-004", "word": "grape", "meaning": "ぶどう", "quizMeaning": "ぶどう", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "These grapes are sweet.", "exampleJa": "このぶどうはあまいです。"}, {"id": "food_shopping-005", "word": "fruit", "meaning": "くだもの", "quizMeaning": "くだもの", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I like fruit.", "exampleJa": "私はくだものが好きです。"}, {"id": "food_shopping-006", "word": "vegetable", "meaning": "やさい", "quizMeaning": "やさい", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "Vegetables are good for us.", "exampleJa": "やさいは私たちによいです。"}, {"id": "food_shopping-007", "word": "tomato", "meaning": "トマト", "quizMeaning": "トマト", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I have a red tomato.", "exampleJa": "私は赤いトマトを持っています。"}, {"id": "food_shopping-008", "word": "potato", "meaning": "じゃがいも", "quizMeaning": "じゃがいも", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "Potatoes are in the bag.", "exampleJa": "じゃがいもはかばんの中にあります。"}, {"id": "food_shopping-009", "word": "carrot", "meaning": "にんじん", "quizMeaning": "にんじん", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "Rabbits like carrots.", "exampleJa": "うさぎはにんじんが好きです。"}, {"id": "food_shopping-010", "word": "rice", "meaning": "ごはん", "quizMeaning": "ごはん", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I eat rice for dinner.", "exampleJa": "私は夕ごはんにごはんを食べます。"}, {"id": "food_shopping-011", "word": "bread", "meaning": "パン", "quizMeaning": "パン", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I like bread for breakfast.", "exampleJa": "私は朝ごはんにパンが好きです。"}, {"id": "food_shopping-012", "word": "pizza", "meaning": "ピザ", "quizMeaning": "ピザ", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "We make pizza at home.", "exampleJa": "私たちは家でピザを作ります。"}, {"id": "food_shopping-013", "word": "salad", "meaning": "サラダ", "quizMeaning": "サラダ", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "This salad is fresh.", "exampleJa": "このサラダは新鮮です。"}, {"id": "food_shopping-014", "word": "egg", "meaning": "たまご", "quizMeaning": "たまご", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I eat an egg every morning.", "exampleJa": "私は毎朝たまごを食べます。"}, {"id": "food_shopping-015", "word": "cheese", "meaning": "チーズ", "quizMeaning": "チーズ", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "There is cheese on the pizza.", "exampleJa": "ピザの上にチーズがあります。"}, {"id": "food_shopping-016", "word": "meat", "meaning": "肉", "quizMeaning": "肉", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I eat meat at lunch.", "exampleJa": "私は昼ごはんに肉を食べます。"}, {"id": "food_shopping-017", "word": "milk", "meaning": "ぎゅうにゅう", "quizMeaning": "ぎゅうにゅう", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I drink milk every day.", "exampleJa": "私は毎日ぎゅうにゅうを飲みます。"}, {"id": "food_shopping-018", "word": "water", "meaning": "水", "quizMeaning": "水", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "Please drink water.", "exampleJa": "水を飲んでください。"}, {"id": "food_shopping-019", "word": "juice", "meaning": "ジュース", "quizMeaning": "ジュース", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "This juice is cold.", "exampleJa": "このジュースは冷たいです。"}, {"id": "food_shopping-020", "word": "ice cream", "meaning": "アイスクリーム", "quizMeaning": "アイスクリーム", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I like chocolate ice cream.", "exampleJa": "私はチョコレートアイスが好きです。"}, {"id": "food_shopping-021", "word": "cake", "meaning": "ケーキ", "quizMeaning": "ケーキ", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "We eat cake at the party.", "exampleJa": "私たちはパーティーでケーキを食べます。"}, {"id": "food_shopping-022", "word": "breakfast", "meaning": "朝ごはん", "quizMeaning": "朝ごはん", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "Breakfast is ready.", "exampleJa": "朝ごはんの準備ができました。"}, {"id": "food_shopping-023", "word": "lunch", "meaning": "昼ごはん", "quizMeaning": "昼ごはん", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I eat lunch at school.", "exampleJa": "私は学校で昼ごはんを食べます。"}, {"id": "food_shopping-024", "word": "dinner", "meaning": "夕ごはん", "quizMeaning": "夕ごはん", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "We have dinner at seven.", "exampleJa": "私たちは7時に夕ごはんを食べます。"}, {"id": "food_shopping-025", "word": "plate", "meaning": "皿", "quizMeaning": "皿", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "The apple is on the plate.", "exampleJa": "りんごは皿の上にあります。"}, {"id": "food_shopping-026", "word": "cup", "meaning": "カップ", "quizMeaning": "カップ", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "This cup is small.", "exampleJa": "このカップは小さいです。"}, {"id": "food_shopping-027", "word": "fork", "meaning": "フォーク", "quizMeaning": "フォーク", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I use a fork for salad.", "exampleJa": "私はサラダにフォークを使います。"}, {"id": "food_shopping-028", "word": "spoon", "meaning": "スプーン", "quizMeaning": "スプーン", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "This spoon is for soup.", "exampleJa": "このスプーンはスープ用です。"}, {"id": "food_shopping-029", "word": "shop", "meaning": "店", "quizMeaning": "店", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I go to the shop with my mother.", "exampleJa": "私は母と店へ行きます。"}, {"id": "food_shopping-030", "word": "money", "meaning": "お金", "quizMeaning": "お金", "category": "food_shopping", "categoryLabel": "食べ物・買い物", "example": "I have some money.", "exampleJa": "私はお金を持っています。"}, {"id": "family_people-001", "word": "family", "meaning": "家族", "quizMeaning": "家族", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "My family is big.", "exampleJa": "私の家族は大きいです。"}, {"id": "family_people-002", "word": "father", "meaning": "父", "quizMeaning": "父", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "My father is kind.", "exampleJa": "私の父は親切です。"}, {"id": "family_people-003", "word": "mother", "meaning": "母", "quizMeaning": "母", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "My mother cooks dinner.", "exampleJa": "私の母は夕ごはんを作ります。"}, {"id": "family_people-004", "word": "brother", "meaning": "兄弟", "quizMeaning": "兄弟", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "My brother plays baseball.", "exampleJa": "私の兄弟は野球をします。"}, {"id": "family_people-005", "word": "sister", "meaning": "姉妹", "quizMeaning": "姉妹", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "My sister likes music.", "exampleJa": "私の姉妹は音楽が好きです。"}, {"id": "family_people-006", "word": "grandfather", "meaning": "祖父", "quizMeaning": "祖父", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "My grandfather tells stories.", "exampleJa": "私の祖父は話をしてくれます。"}, {"id": "family_people-007", "word": "grandmother", "meaning": "祖母", "quizMeaning": "祖母", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "My grandmother makes cake.", "exampleJa": "私の祖母はケーキを作ります。"}, {"id": "family_people-008", "word": "people", "meaning": "人々", "quizMeaning": "人々", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "Many people are in the park.", "exampleJa": "たくさんの人が公園にいます。"}, {"id": "family_people-009", "word": "man", "meaning": "男の人", "quizMeaning": "男の人", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "That man is my teacher.", "exampleJa": "あの男の人は私の先生です。"}, {"id": "family_people-010", "word": "woman", "meaning": "女の人", "quizMeaning": "女の人", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "The woman is my aunt.", "exampleJa": "その女の人は私のおばです。"}, {"id": "family_people-011", "word": "boy", "meaning": "男の子", "quizMeaning": "男の子", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "The boy runs fast.", "exampleJa": "その男の子は速く走ります。"}, {"id": "family_people-012", "word": "girl", "meaning": "女の子", "quizMeaning": "女の子", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "The girl has a red bag.", "exampleJa": "その女の子は赤いかばんを持っています。"}, {"id": "family_people-013", "word": "doctor", "meaning": "医者", "quizMeaning": "医者", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "My father is a doctor.", "exampleJa": "私の父は医者です。"}, {"id": "family_people-014", "word": "nurse", "meaning": "看護師", "quizMeaning": "看護師", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "The nurse is kind.", "exampleJa": "その看護師は親切です。"}, {"id": "family_people-015", "word": "farmer", "meaning": "農家", "quizMeaning": "農家", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "The farmer grows vegetables.", "exampleJa": "その農家はやさいを育てます。"}, {"id": "family_people-016", "word": "police officer", "meaning": "警察官", "quizMeaning": "警察官", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "The police officer helps people.", "exampleJa": "その警察官は人々を助けます。"}, {"id": "family_people-017", "word": "firefighter", "meaning": "消防士", "quizMeaning": "消防士", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "The firefighter is strong.", "exampleJa": "その消防士は強いです。"}, {"id": "family_people-018", "word": "town", "meaning": "町", "quizMeaning": "町", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "My town is quiet.", "exampleJa": "私の町は静かです。"}, {"id": "family_people-019", "word": "city", "meaning": "市", "quizMeaning": "市", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "This city is big.", "exampleJa": "この市は大きいです。"}, {"id": "family_people-020", "word": "country", "meaning": "国", "quizMeaning": "国", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "Japan is my country.", "exampleJa": "日本は私の国です。"}, {"id": "family_people-021", "word": "Japan", "meaning": "日本", "quizMeaning": "日本", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "I live in Japan.", "exampleJa": "私は日本に住んでいます。"}, {"id": "family_people-022", "word": "world", "meaning": "世界", "quizMeaning": "世界", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "We learn about the world.", "exampleJa": "私たちは世界について学びます。"}, {"id": "family_people-023", "word": "home", "meaning": "家", "quizMeaning": "家", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "I go home after school.", "exampleJa": "私は放課後に家へ帰ります。"}, {"id": "family_people-024", "word": "room", "meaning": "部屋", "quizMeaning": "部屋", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "My room is clean.", "exampleJa": "私の部屋はきれいです。"}, {"id": "family_people-025", "word": "park", "meaning": "公園", "quizMeaning": "公園", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "We play in the park.", "exampleJa": "私たちは公園で遊びます。"}, {"id": "family_people-026", "word": "station", "meaning": "駅", "quizMeaning": "駅", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "The station is near my house.", "exampleJa": "駅は私の家の近くです。"}, {"id": "family_people-027", "word": "hospital", "meaning": "病院", "quizMeaning": "病院", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "The hospital is in my town.", "exampleJa": "病院は私の町にあります。"}, {"id": "family_people-028", "word": "party", "meaning": "パーティー", "quizMeaning": "パーティー", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "We have a party today.", "exampleJa": "今日はパーティーがあります。"}, {"id": "family_people-029", "word": "present", "meaning": "プレゼント", "quizMeaning": "プレゼント", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "This present is for you.", "exampleJa": "このプレゼントはあなたのためです。"}, {"id": "family_people-030", "word": "kind", "meaning": "親切な", "quizMeaning": "親切な", "category": "family_people", "categoryLabel": "家族・人・まち", "example": "My teacher is kind.", "exampleJa": "私の先生は親切です。"}, {"id": "nature_animals-001", "word": "sun", "meaning": "太陽", "quizMeaning": "太陽", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The sun is bright.", "exampleJa": "太陽は明るいです。"}, {"id": "nature_animals-002", "word": "moon", "meaning": "月", "quizMeaning": "月", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The moon is beautiful tonight.", "exampleJa": "今夜の月はきれいです。"}, {"id": "nature_animals-003", "word": "star", "meaning": "星", "quizMeaning": "星", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "I can see a star.", "exampleJa": "私は星が見えます。"}, {"id": "nature_animals-004", "word": "sky", "meaning": "空", "quizMeaning": "空", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The sky is blue.", "exampleJa": "空は青いです。"}, {"id": "nature_animals-005", "word": "rain", "meaning": "雨", "quizMeaning": "雨", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "I hear the rain.", "exampleJa": "私は雨の音を聞きます。"}, {"id": "nature_animals-006", "word": "snow", "meaning": "雪", "quizMeaning": "雪", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "We play in the snow.", "exampleJa": "私たちは雪で遊びます。"}, {"id": "nature_animals-007", "word": "wind", "meaning": "風", "quizMeaning": "風", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The wind is strong today.", "exampleJa": "今日は風が強いです。"}, {"id": "nature_animals-008", "word": "weather", "meaning": "天気", "quizMeaning": "天気", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The weather is nice today.", "exampleJa": "今日は天気がよいです。"}, {"id": "nature_animals-009", "word": "sea", "meaning": "海", "quizMeaning": "海", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "I go to the sea in summer.", "exampleJa": "私は夏に海へ行きます。"}, {"id": "nature_animals-010", "word": "river", "meaning": "川", "quizMeaning": "川", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "There are fish in the river.", "exampleJa": "川に魚がいます。"}, {"id": "nature_animals-011", "word": "mountain", "meaning": "山", "quizMeaning": "山", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "That mountain is high.", "exampleJa": "あの山は高いです。"}, {"id": "nature_animals-012", "word": "tree", "meaning": "木", "quizMeaning": "木", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "A bird is in the tree.", "exampleJa": "木に鳥がいます。"}, {"id": "nature_animals-013", "word": "flower", "meaning": "花", "quizMeaning": "花", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "This flower is red.", "exampleJa": "この花は赤いです。"}, {"id": "nature_animals-014", "word": "hot", "meaning": "暑い", "quizMeaning": "暑い", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "It is hot in August.", "exampleJa": "8月は暑いです。"}, {"id": "nature_animals-015", "word": "cold", "meaning": "寒い", "quizMeaning": "寒い", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "It is cold in winter.", "exampleJa": "冬は寒いです。"}, {"id": "nature_animals-016", "word": "sunny", "meaning": "晴れの", "quizMeaning": "晴れの", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "It is sunny today.", "exampleJa": "今日は晴れです。"}, {"id": "nature_animals-017", "word": "cloudy", "meaning": "くもりの", "quizMeaning": "くもりの", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "It is cloudy this morning.", "exampleJa": "今朝はくもりです。"}, {"id": "nature_animals-018", "word": "rainy", "meaning": "雨の", "quizMeaning": "雨の", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "It is rainy today.", "exampleJa": "今日は雨です。"}, {"id": "nature_animals-019", "word": "dog", "meaning": "犬", "quizMeaning": "犬", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The dog is cute.", "exampleJa": "その犬はかわいいです。"}, {"id": "nature_animals-020", "word": "cat", "meaning": "ねこ", "quizMeaning": "ねこ", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The cat is on the chair.", "exampleJa": "そのねこはいすの上にいます。"}, {"id": "nature_animals-021", "word": "bird", "meaning": "鳥", "quizMeaning": "鳥", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "I see a bird in the sky.", "exampleJa": "私は空に鳥を見ます。"}, {"id": "nature_animals-022", "word": "fish", "meaning": "魚", "quizMeaning": "魚", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The fish swims fast.", "exampleJa": "その魚は速く泳ぎます。"}, {"id": "nature_animals-023", "word": "rabbit", "meaning": "うさぎ", "quizMeaning": "うさぎ", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The rabbit likes carrots.", "exampleJa": "そのうさぎはにんじんが好きです。"}, {"id": "nature_animals-024", "word": "bear", "meaning": "くま", "quizMeaning": "くま", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The bear is big.", "exampleJa": "そのくまは大きいです。"}, {"id": "nature_animals-025", "word": "horse", "meaning": "馬", "quizMeaning": "馬", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The horse runs fast.", "exampleJa": "その馬は速く走ります。"}, {"id": "nature_animals-026", "word": "cow", "meaning": "牛", "quizMeaning": "牛", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The cow is on the farm.", "exampleJa": "その牛は農場にいます。"}, {"id": "nature_animals-027", "word": "monkey", "meaning": "さる", "quizMeaning": "さる", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The monkey can climb trees.", "exampleJa": "そのさるは木に登れます。"}, {"id": "nature_animals-028", "word": "elephant", "meaning": "ぞう", "quizMeaning": "ぞう", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "The elephant is very big.", "exampleJa": "そのぞうはとても大きいです。"}, {"id": "nature_animals-029", "word": "zoo", "meaning": "動物園", "quizMeaning": "動物園", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "I go to the zoo on Sunday.", "exampleJa": "私は日曜日に動物園へ行きます。"}, {"id": "nature_animals-030", "word": "pet", "meaning": "ペット", "quizMeaning": "ペット", "category": "nature_animals", "categoryLabel": "自然・動物・天気", "example": "My dog is my pet.", "exampleJa": "私の犬は私のペットです。"}, {"id": "actions-001", "word": "play", "meaning": "遊ぶ", "quizMeaning": "遊ぶ", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I play soccer.", "exampleJa": "私はサッカーをします。"}, {"id": "actions-002", "word": "run", "meaning": "走る", "quizMeaning": "走る", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I run in the park.", "exampleJa": "私は公園で走ります。"}, {"id": "actions-003", "word": "walk", "meaning": "歩く", "quizMeaning": "歩く", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I walk to school.", "exampleJa": "私は学校へ歩いて行きます。"}, {"id": "actions-004", "word": "jump", "meaning": "とぶ", "quizMeaning": "とぶ", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I jump high.", "exampleJa": "私は高くとびます。"}, {"id": "actions-005", "word": "swim", "meaning": "泳ぐ", "quizMeaning": "泳ぐ", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I swim in the pool.", "exampleJa": "私はプールで泳ぎます。"}, {"id": "actions-006", "word": "dance", "meaning": "おどる", "quizMeaning": "おどる", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I dance with my friends.", "exampleJa": "私は友だちとおどります。"}, {"id": "actions-007", "word": "sing", "meaning": "歌う", "quizMeaning": "歌う", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I sing a song.", "exampleJa": "私は歌を歌います。"}, {"id": "actions-008", "word": "draw", "meaning": "絵をかく", "quizMeaning": "絵をかく", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I draw a picture.", "exampleJa": "私は絵をかきます。"}, {"id": "actions-009", "word": "read", "meaning": "読む", "quizMeaning": "読む", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I read a book.", "exampleJa": "私は本を読みます。"}, {"id": "actions-010", "word": "write", "meaning": "書く", "quizMeaning": "書く", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I write a letter.", "exampleJa": "私は手紙を書きます。"}, {"id": "actions-011", "word": "watch", "meaning": "見る", "quizMeaning": "見る", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I watch TV.", "exampleJa": "私はテレビを見ます。"}, {"id": "actions-012", "word": "listen", "meaning": "聞く", "quizMeaning": "聞く", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I listen to music.", "exampleJa": "私は音楽を聞きます。"}, {"id": "actions-013", "word": "talk", "meaning": "話す", "quizMeaning": "話す", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I talk with my friend.", "exampleJa": "私は友だちと話します。"}, {"id": "actions-014", "word": "give", "meaning": "あげる", "quizMeaning": "あげる", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I give you a pen.", "exampleJa": "私はあなたにペンをあげます。"}, {"id": "actions-015", "word": "take", "meaning": "取る", "quizMeaning": "取る", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I take a book.", "exampleJa": "私は本を取ります。"}, {"id": "actions-016", "word": "come", "meaning": "来る", "quizMeaning": "来る", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I come to school.", "exampleJa": "私は学校に来ます。"}, {"id": "actions-017", "word": "go", "meaning": "行く", "quizMeaning": "行く", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I go home.", "exampleJa": "私は家に帰ります。"}, {"id": "actions-018", "word": "help", "meaning": "手伝う", "quizMeaning": "手伝う", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I help my mother.", "exampleJa": "私は母を手伝います。"}, {"id": "actions-019", "word": "open", "meaning": "開ける", "quizMeaning": "開ける", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I open the door.", "exampleJa": "私はドアを開けます。"}, {"id": "actions-020", "word": "close", "meaning": "閉める", "quizMeaning": "閉める", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I close the window.", "exampleJa": "私は窓を閉めます。"}, {"id": "actions-021", "word": "study", "meaning": "勉強する", "quizMeaning": "勉強する", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I study English.", "exampleJa": "私は英語を勉強します。"}, {"id": "actions-022", "word": "make", "meaning": "作る", "quizMeaning": "作る", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I make a cake.", "exampleJa": "私はケーキを作ります。"}, {"id": "actions-023", "word": "ride", "meaning": "乗る", "quizMeaning": "乗る", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I ride a bike.", "exampleJa": "私は自転車に乗ります。"}, {"id": "actions-024", "word": "eat", "meaning": "食べる", "quizMeaning": "食べる", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I eat an apple.", "exampleJa": "私はりんごを食べます。"}, {"id": "actions-025", "word": "drink", "meaning": "飲む", "quizMeaning": "飲む", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I drink milk.", "exampleJa": "私は牛乳を飲みます。"}, {"id": "actions-026", "word": "buy", "meaning": "買う", "quizMeaning": "買う", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "I buy a pen.", "exampleJa": "私はペンを買います。"}, {"id": "actions-027", "word": "beautiful", "meaning": "美しい", "quizMeaning": "美しい", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "This flower is beautiful.", "exampleJa": "この花は美しいです。"}, {"id": "actions-028", "word": "cute", "meaning": "かわいい", "quizMeaning": "かわいい", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "This dog is cute.", "exampleJa": "この犬はかわいいです。"}, {"id": "actions-029", "word": "big", "meaning": "大きい", "quizMeaning": "大きい", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "This bag is big.", "exampleJa": "このかばんは大きいです。"}, {"id": "actions-030", "word": "small", "meaning": "小さい", "quizMeaning": "小さい", "category": "actions_hobbies", "categoryLabel": "動作・趣味・ようす", "example": "This cat is small.", "exampleJa": "このねこは小さいです。"}];
+
+    var selectedCategoryId = categories[0].id;
+    var currentWordList = [];
+    var currentCardIndex = 0;
+    var cardAnswerShown = false;
+    var quizCount = 0;
+    var score = 0;
+    var totalQuestions = 10;
+    var currentQuestion = null;
+    var currentChoices = [];
+    var askedQuestionIds = [];
+
+    function byId(id) {
+      return document.getElementById(id);
+    }
+
+    function showScreen(name) {
+      byId("homeScreen").className = "hidden";
+      byId("cardScreen").className = "hidden";
+      byId("quizScreen").className = "hidden";
+      byId(name).className = "";
+    }
+
+    function goHome() {
+      showScreen("homeScreen");
+    }
+
+    function getWordsByCategory(categoryId) {
+      var list = [];
+      var i;
+      for (i = 0; i < words.length; i++) {
+        if (words[i].category === categoryId) {
+          list.push(words[i]);
+        }
+      }
+      return list;
+    }
+
+    function shuffle(array) {
+      var copied = array.slice();
+      var i, j, temp;
+      for (i = copied.length - 1; i > 0; i--) {
+        j = Math.floor(Math.random() * (i + 1));
+        temp = copied[i];
+        copied[i] = copied[j];
+        copied[j] = temp;
+      }
+      return copied;
+    }
+
+        function playAudioFile(filePath, repeatTwice) {
+      var audio1 = new Audio(filePath);
+      audio1.play();
+
+      if (repeatTwice) {
+        audio1.onended = function() {
+          setTimeout(function() {
+            var audio2 = new Audio(filePath);
+            audio2.play();
+          }, 300);
+        };
+      }
+    }
+
+      var synth = window.speechSynthesis;
+      synth.cancel();
+
+      function pickVoice() {
+        var voices = synth.getVoices();
+        var preferred =
+          voices.find(function(v) { return v.lang === "en-US" && /Samantha/i.test(v.name); }) ||
+          voices.find(function(v) { return v.lang === "en-US"; }) ||
+          voices.find(function(v) { return /^en-/i.test(v.lang); }) ||
+          null;
+        return preferred;
+      }
+
+      function buildUtterance() {
+        var voice = pickVoice();
+        var utterance = new SpeechSynthesisUtterance(wordText);
+        utterance.rate = 0.6;
+        utterance.pitch = 1.0;
+        utterance.lang = "en-US";
+        if (voice) {
+          utterance.voice = voice;
+          utterance.lang = voice.lang;
+        }
+        return utterance;
+      }
+
+      function speakOnce() {
+        var utterance1 = buildUtterance();
+        synth.speak(utterance1);
+
+        if (repeatTwice) {
+          utterance1.onend = function() {
+            setTimeout(function() {
+              var utterance2 = buildUtterance();
+              synth.speak(utterance2);
+            }, 300);
+          };
+        }
+      }
+
+      var voicesNow = synth.getVoices();
+      if (voicesNow.length > 0) {
+        speakOnce();
+      } else {
+        synth.onvoiceschanged = function() {
+          speakOnce();
+          synth.onvoiceschanged = null;
+        };
+      }
+    }
+
+    function renderHomeCategories() {
+      var box = byId("homeCategories");
+      var i, btn, count;
+      box.innerHTML = "";
+      for (i = 0; i < categories.length; i++) {
+        count = categories[i].words.length;
+        btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "category-btn";
+        btn.setAttribute("data-id", categories[i].id);
+        btn.innerHTML = "<strong>" + categories[i].label + "</strong><br><span class='small'>" + count + "語</span>";
+        btn.onclick = makeCategorySelectHandler(categories[i].id);
+        box.appendChild(btn);
+      }
+      updateSelectedCategoryUI();
+    }
+
+    function makeCategorySelectHandler(categoryId) {
+      return function() {
+        selectedCategoryId = categoryId;
+        updateSelectedCategoryUI();
+      };
+    }
+
+    function updateSelectedCategoryUI() {
+      var buttons = byId("homeCategories").getElementsByTagName("button");
+      var i, id;
+      for (i = 0; i < buttons.length; i++) {
+        id = buttons[i].getAttribute("data-id");
+        if (id === selectedCategoryId) {
+          buttons[i].style.background = "#4f8ef7";
+          buttons[i].style.color = "white";
+        } else {
+          buttons[i].style.background = "#eef3ff";
+          buttons[i].style.color = "#111";
+        }
+      }
+    }
+
+    function startSelectedCategoryCard() {
+      currentWordList = getWordsByCategory(selectedCategoryId);
+      currentCardIndex = 0;
+      renderCard();
+      showScreen("cardScreen");
+    }
+
+    function renderCard() {
+      var current = currentWordList[currentCardIndex];
+      cardAnswerShown = false;
+
+      byId("cardCategory").textContent = current.categoryLabel;
+      byId("cardWord").textContent = current.word;
+      byId("cardMeaning").textContent = current.meaning;
+      byId("cardExample").textContent = current.example;
+      byId("cardExampleJa").textContent = current.exampleJa;
+      byId("cardCounter").textContent = (currentCardIndex + 1) + " / " + currentWordList.length;
+
+      byId("cardAnswerArea").className = "hidden answer-block";
+      byId("cardInitialButtons").className = "buttons";
+      byId("cardAfterButtons").className = "buttons hidden";
+    }
+
+    function showCardAnswer() {
+      cardAnswerShown = true;
+      byId("cardAnswerArea").className = "answer-block";
+      byId("cardInitialButtons").className = "buttons hidden";
+      byId("cardAfterButtons").className = "buttons";
+    }
+
+    function speakCurrentWord() {
+      var current = currentWordList[currentCardIndex];
+      playAudioFile("audio/" + current.id + "-word.mp3", true);
+    }
+
+    function speakCurrentExample() {
+      var current = currentWordList[currentCardIndex];
+      playAudioFile("audio/" + current.id + "-example.mp3", false);
+    }
+
+    function nextCard() {
+      currentCardIndex = currentCardIndex + 1;
+      if (currentCardIndex >= currentWordList.length) {
+        currentCardIndex = 0;
+      }
+      renderCard();
+    }
+
+    function startSelectedCategoryQuiz() {
+      currentWordList = getWordsByCategory(selectedCategoryId);
+      showScreen("quizScreen");
+      startQuiz();
+    }
+
+    function startQuiz() {
+      quizCount = 0;
+      score = 0;
+      askedQuestionIds = [];
+      byId("quizArea").className = "";
+      byId("quizResultArea").className = "hidden";
+      nextQuiz();
+    }
+
+    function restartQuiz() {
+      startQuiz();
+    }
+
+    function getUnusedQuestionPool() {
+      var pool = [];
+      var i, used;
+      for (i = 0; i < currentWordList.length; i++) {
+        used = false;
+        if (askedQuestionIds.indexOf(currentWordList[i].id) !== -1) {
+          used = true;
+        }
+        if (!used) {
+          pool.push(currentWordList[i]);
+        }
+      }
+      return pool;
+    }
+
+    function nextQuiz() {
+      var wrongPool, wrongChoices, pool, i;
+
+      if (quizCount >= totalQuestions) {
+        showQuizResult();
+        return;
+      }
+
+      pool = getUnusedQuestionPool();
+      if (pool.length === 0) {
+        askedQuestionIds = [];
+        pool = currentWordList.slice();
+      }
+
+      quizCount = quizCount + 1;
+      currentQuestion = pool[Math.floor(Math.random() * pool.length)];
+      askedQuestionIds.push(currentQuestion.id);
+
+      wrongPool = [];
+      for (i = 0; i < currentWordList.length; i++) {
+        if (currentWordList[i].quizMeaning !== currentQuestion.quizMeaning) {
+          wrongPool.push(currentWordList[i]);
+        }
+      }
+
+      wrongChoices = shuffle(wrongPool).slice(0, 3);
+      currentChoices = shuffle([currentQuestion].concat(wrongChoices));
+      renderQuiz();
+    }
+
+    function renderQuiz() {
+      var i, btn;
+      byId("quizCategory").textContent = currentQuestion.categoryLabel;
+      byId("quizCount").textContent = quizCount + " / " + totalQuestions;
+      byId("quizWord").textContent = currentQuestion.word;
+      byId("quizChoices").innerHTML = "";
+
+      for (i = 0; i < currentChoices.length; i++) {
+        btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "choice-btn";
+        btn.textContent = currentChoices[i].quizMeaning;
+        btn.setAttribute("data-meaning", currentChoices[i].quizMeaning);
+        btn.onclick = makeAnswerHandler(btn, currentChoices[i]);
+        byId("quizChoices").appendChild(btn);
+      }
+    }
+
+    function speakQuizWord() {
+      if (!currentQuestion) {
+        return;
+      }
+      playAudioFile("audio/" + currentQuestion.id + "-word.mp3", true);
+    }
+
+    function makeAnswerHandler(button, choice) {
+      return function() {
+        selectAnswer(button, choice);
+      };
+    }
+
+    function selectAnswer(button, choice) {
+      var buttons = byId("quizChoices").getElementsByTagName("button");
+      var i;
+
+      for (i = 0; i < buttons.length; i++) {
+        buttons[i].disabled = true;
+      }
+
+      if (choice.quizMeaning === currentQuestion.quizMeaning) {
+        button.className = "choice-btn correct";
+        score = score + 1;
+      } else {
+        button.className = "choice-btn wrong";
+        for (i = 0; i < buttons.length; i++) {
+          if (buttons[i].getAttribute("data-meaning") === currentQuestion.quizMeaning) {
+            buttons[i].className = "choice-btn correct";
+          }
+        }
+      }
+
+      setTimeout(function() {
+        nextQuiz();
+      }, 1000);
+    }
+
+    function showQuizResult() {
+      byId("quizArea").className = "hidden";
+      byId("quizResultArea").className = "";
+      byId("quizScore").textContent = score + " / " + totalQuestions + " せいかい！";
+    }
+
+    byId("totalInfo").textContent = "ぜんぶで " + words.length + "語";
+    renderHomeCategories();
+    goHome();
+  </script>
+</body>
+</html>
